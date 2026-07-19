@@ -36,15 +36,27 @@ body { overflow-x: hidden; }
   object-fit: cover;
   background: #1c1815;
 }
-#bowl-poster { display: none; }
-/* Mobile / fallback state — hide the video, show the poster instead */
+/* Poster is layered over the video so it's visible from first paint.
+   It's hidden the moment the video decodes its first frame (BowlStage
+   flips [data-loading] to 'false'). Permanent fallback keeps it shown. */
+#bowl-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  transition: opacity 400ms ease;
+  opacity: 0;
+  pointer-events: none;
+}
+#bowl-stage[data-loading='true'] #bowl-poster { opacity: 1; }
 #bowl-stage[data-fallback='true'] #bowl-video { display: none; }
-#bowl-stage[data-fallback='true'] #bowl-poster { display: block; }
+#bowl-stage[data-fallback='true'] #bowl-poster { opacity: 1; }
 
-/* Cinematic scrim — darkens edges so overlaid text stays legible */
+/* Cinematic scrim — sits above both video and poster; darkens edges so
+   overlaid text stays legible */
 #bowl-scrim {
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
   background:
     linear-gradient(180deg,
@@ -55,26 +67,6 @@ body { overflow-x: hidden; }
     radial-gradient(ellipse 90% 60% at 50% 50%,
       transparent 40%,
       rgba(28, 24, 21, 0.35) 100%);
-}
-
-/* Loading placeholder */
-#bowl-loading {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(253, 250, 243, 0.8);
-  font-family: 'Fraunces', serif;
-  font-size: 1.25rem;
-  font-style: italic;
-  background: #1c1815;
-  transition: opacity 500ms ease;
-}
-#bowl-loading[data-hidden='true'] {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* Serif display headline */

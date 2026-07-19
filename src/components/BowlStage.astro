@@ -2,13 +2,17 @@
 /**
  * BowlStage — the fixed, full-viewport video background.
  *
- * On desktop, the video is scrubbed by scroll (see StoryOverlay's script).
- * On mobile or slow connections, we swap in a static poster image so the
- * bowl still reads visually without asking the phone to seek an mp4.
- *
- * Client script decides which of the two to activate on the client based
- * on viewport width and Network Information API hints. It also warms the
- * video decoder with a single play/pause cycle once loadeddata fires.
+ * Design:
+ *   - Poster JPG is painted from the very first frame, so there is no
+ *     black flash while the video downloads on cellular.
+ *   - The <video> is scrubbed by scroll on ALL viewports (including mobile).
+ *   - Only genuinely hostile environments fall back permanently to the
+ *     poster: reduced motion, reduced data / saveData, 2g/slow-2g, or a
+ *     video error. Small viewport is NOT a reason to fall back — modern
+ *     mobile browsers scrub muted playsinline videos fine once unlocked.
+ *   - iOS gesture unlock: if autoplay-muted is rejected on load, we hook
+ *     the first touchstart/scroll to re-attempt play()/pause() so
+ *     currentTime seeks start rendering frames.
  */
 ---
 
@@ -25,7 +29,6 @@
   ></video>
   <img id="bowl-poster" src="/bowl-poster.jpg" alt="" />
   <div id="bowl-scrim"></div>
-  <div id="bowl-loading">warming the kitchen…</div>
 </div>
 
 <script>
@@ -44,38 +47,33 @@
 
   const stage = document.getElementById('bowl-stage') as HTMLDivElement | null;
   const video = document.getElementById('bowl-video') as HTMLVideoElement | null;
-  const loading = document.getElementById('bowl-loading') as HTMLDivElement | null;
 
-  if (stage && video && loading) {
+  if (stage && video) {
+    // Poster is visible by default (see CSS: #bowl-poster { display: block }
+    // when stage[data-fallback='true'], but we also want it visible during
+    // initial video load). We handle this by showing the poster over the
+    // video until the video's first frame is drawn.
+    stage.dataset.loading = 'true';
+
     // -----------------------------------------------------------------
-    // Decide whether to attempt scrub-video or fall back to the poster.
-    //
-    // Reasons to fall back:
-    //   - Small viewport (phone / narrow tablet)
-    //   - User has reduced-data preference
-    //   - Slow network reported by Network Information API
-    //   - User prefers reduced motion (scrub animation is unnecessary)
+    // Decide whether to permanently fall back to the poster (no scrub).
+    // Small viewport is NOT a trigger — we let mobile try to scrub.
     // -----------------------------------------------------------------
-    const smallViewport = window.matchMedia('(max-width: 768px)').matches;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const reducedData = window.matchMedia('(prefers-reduced-data: reduce)').matches;
 
     const nav = navigator as Navigator & {
-      connection?: {
-        effectiveType?: string;
-        saveData?: boolean;
-      };
+      connection?: { effectiveType?: string; saveData?: boolean };
     };
     const conn = nav.connection;
     const slowNet =
       !!conn && (conn.saveData === true || ['slow-2g', '2g'].includes(conn.effectiveType ?? ''));
 
-    const useFallback = smallViewport || reducedMotion || reducedData || slowNet;
+    const useFallback = reducedMotion || reducedData || slowNet;
 
     if (useFallback) {
       stage.dataset.fallback = 'true';
-      loading.dataset.hidden = 'true';
-      // Publish a no-op API so StoryOverlay can still run its beat picker.
+      stage.dataset.loading = 'false';
       window.__bowlAPI = {
         ready: Promise.resolve(0),
         setProgress: () => {},
@@ -83,29 +81,60 @@
       };
     } else {
       // ---------------------------------------------------------------
-      // Desktop path — wire the video for scroll-scrubbing.
+      // Scrub path — works on desktop AND mobile with the right unlocks.
       // ---------------------------------------------------------------
       let resolveReady: (d: number) => void = () => {};
       const ready = new Promise<number>((res) => {
         resolveReady = res;
       });
       let isReady = false;
+      let hasUnlocked = false;
+
+      // iOS Safari refuses currentTime seeks on paused videos that have
+      // never played. play()/pause() unlocks scrubbing. On some devices,
+      // autoplay-muted works immediately; on others we need a user gesture.
+      function tryUnlock() {
+        if (hasUnlocked) return;
+        const p = video!.play();
+        if (p && typeof (p as any).then === 'function') {
+          (p as Promise<void>)
+            .then(() => {
+              hasUnlocked = true;
+              video!.pause();
+              // Once we've decoded a frame, hide the poster overlay
+              stage!.dataset.loading = 'false';
+            })
+            .catch(() => {
+              // Autoplay blocked — wait for a real user gesture, then retry.
+              // Any of these will do; whichever fires first wins.
+              const gestureUnlock = () => {
+                video!.play().then(() => {
+                  hasUnlocked = true;
+                  video!.pause();
+                  stage!.dataset.loading = 'false';
+                }).catch(() => {
+                  // Still blocked. Show poster and give up on scrubbing.
+                  stage!.dataset.fallback = 'true';
+                  stage!.dataset.loading = 'false';
+                });
+                window.removeEventListener('touchstart', gestureUnlock);
+                window.removeEventListener('pointerdown', gestureUnlock);
+                window.removeEventListener('scroll', gestureUnlock);
+              };
+              window.addEventListener('touchstart', gestureUnlock, { once: true, passive: true });
+              window.addEventListener('pointerdown', gestureUnlock, { once: true, passive: true });
+              window.addEventListener('scroll', gestureUnlock, { once: true, passive: true });
+            });
+        } else {
+          hasUnlocked = true;
+          stage!.dataset.loading = 'false';
+        }
+      }
 
       function markReady() {
         if (isReady) return;
         isReady = true;
-        loading!.dataset.hidden = 'true';
-        // Kickstart decode: some browsers (Chromium on Windows) show a
-        // black frame until the video has actually played once.
-        // A single play()/pause() cycle warms the pipeline so subsequent
-        // currentTime seeks render instantly.
-        const p = video!.play();
-        if (p && typeof (p as any).then === 'function') {
-          (p as Promise<void>).then(() => video!.pause()).catch(() => {
-            /* autoplay may reject on some browsers — ignore, subsequent
-               currentTime seeks still work because muted */
-          });
-        }
+        tryUnlock();
         resolveReady(video!.duration || 0);
       }
 
@@ -117,10 +146,8 @@
         video.addEventListener('canplaythrough', markReady, { once: true });
       }
       video.addEventListener('error', () => {
-        // Video failed to load — swap in the poster and let StoryOverlay
-        // proceed as if we were in fallback mode from the start.
         stage!.dataset.fallback = 'true';
-        loading!.dataset.hidden = 'true';
+        stage!.dataset.loading = 'false';
         resolveReady(0);
       });
       // Safety timeout — never leave the layout hanging
@@ -134,9 +161,12 @@
           if (!isReady) return;
           const d = video!.duration;
           if (!d || isNaN(d)) return;
+          // If scrubbing was never unlocked (e.g. autoplay blocked and no
+          // gesture yet), the seek may silently no-op. That's OK — the
+          // gesture handler above will unlock on the first scroll.
           video!.currentTime = Math.max(0, Math.min(d - 0.05, p * d));
         },
-        isFallback: () => false,
+        isFallback: () => stage!.dataset.fallback === 'true',
       };
     }
   }
