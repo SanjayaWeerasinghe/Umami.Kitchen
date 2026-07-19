@@ -1,0 +1,306 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import BowlStage from '../components/BowlStage.astro';
+import StoryOverlay from '../components/StoryOverlay.astro';
+---
+
+<BaseLayout>
+  <BowlStage />
+
+  <!-- ============================================================
+       Nav — light text over the video, cream bg once scrolled past
+       ============================================================ -->
+  <header class="nav-bar fixed inset-x-0 top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-baseline gap-1">
+        <span class="display text-2xl font-semibold">Umami</span>
+        <span class="brand-slash text-xs font-mono">/ うまみ</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm">
+        <a href="#story" class="hover:opacity-70 transition-opacity">The bowl</a>
+        <a href="#ingredients" class="hover:opacity-70 transition-opacity">Ingredients</a>
+        <a href="#nutrition" class="hover:opacity-70 transition-opacity">Nutrition</a>
+        <a href="#faq" class="hover:opacity-70 transition-opacity">FAQ</a>
+      </nav>
+      <a href="#order" class="btn btn-primary text-sm">Order today's bowl</a>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Hero — overlays the video's opening frame
+       ============================================================ -->
+  <section id="hero" class="relative min-h-[100vh] flex items-center text-cream-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 pt-24 pb-16 w-full relative z-10">
+      <div class="max-w-3xl">
+        <p
+          class="reveal inline-block text-xs uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border border-cream-200/25 bg-cream-50/5 backdrop-blur-sm text-cream-200"
+          data-hero-el
+        >
+          Freshly made · delivered daily
+        </p>
+        <h1
+          class="display mt-8 text-6xl md:text-7xl lg:text-[9rem] font-semibold reveal drop-shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+          data-hero-el
+        >
+          Healthy food,<br />
+          <em class="not-italic text-tomato">without the effort.</em>
+        </h1>
+        <p
+          class="mt-8 text-xl md:text-2xl text-cream-100 max-w-xl leading-relaxed reveal drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]"
+          data-hero-el
+        >
+          Umami builds a premium bowl every morning — real food, real macros, ready before your
+          lunch break.
+        </p>
+        <div class="mt-10 flex flex-wrap gap-4 reveal" data-hero-el>
+          <a href="#order" class="btn bg-tomato text-cream-50 hover:brightness-110">
+            Get today's bowl · $14
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            >
+              <path d="M5 12h14M13 5l7 7-7 7"></path>
+            </svg>
+          </a>
+          <a
+            href="#story"
+            class="btn border border-cream-50/30 text-cream-50 backdrop-blur-sm hover:bg-cream-50/10"
+          >
+            Watch it come together
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="absolute bottom-8 left-1/2 -translate-x-1/2 text-cream-200/70 text-xs font-mono flex flex-col items-center gap-2 z-10 reveal"
+      data-hero-el
+    >
+      <span>SCROLL</span>
+      <span class="h-6 w-px bg-gradient-to-b from-cream-50/60 to-transparent"></span>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Pinned story with five beats over the video
+       ============================================================ -->
+  <StoryOverlay />
+
+  <!-- ============================================================
+       Ingredients — solid cream bg covers the fixed video
+       ============================================================ -->
+  <section id="ingredients" class="relative z-10 py-32 bg-cream-100">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="max-w-2xl mb-16 reveal">
+        <p class="tag">The lineup</p>
+        <h2 class="display mt-6 text-5xl md:text-6xl font-semibold">
+          Six things.<br />Sourced by name.
+        </h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="nutri-card p-8 reveal">
+          <span class="ing-num text-5xl font-semibold text-espresso-400">01</span>
+          <h3 class="display text-2xl font-semibold mt-4">Baby gem lettuce</h3>
+          <p class="text-espresso-500 text-sm mt-1">Verdant Farms · Vermont</p>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Hydroponic. No pesticides. Torn — never chopped — so the leaves keep their structure
+            through delivery.
+          </p>
+        </div>
+        <div class="nutri-card p-8 reveal">
+          <span class="ing-num text-5xl font-semibold text-tomato">02</span>
+          <h3 class="display text-2xl font-semibold mt-4">Heirloom tomato</h3>
+          <p class="text-espresso-500 text-sm mt-1">Redfield Growers · Hudson Valley</p>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Six varieties, whichever is peak that week. Quartered, salted two minutes, drained.
+          </p>
+        </div>
+        <div class="nutri-card p-8 reveal">
+          <span class="ing-num text-5xl font-semibold" style="color:#e07357">03</span>
+          <h3 class="display text-2xl font-semibold mt-4">Wild shrimp</h3>
+          <p class="text-espresso-500 text-sm mt-1">Gulf Wild · Certified sustainable</p>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Sous-vide at 63°C for exactly four minutes. Never frozen after cooking. Twelve grams
+            protein per bowl.
+          </p>
+        </div>
+        <div class="nutri-card p-8 reveal">
+          <span class="ing-num text-5xl font-semibold text-cucumber">04</span>
+          <h3 class="display text-2xl font-semibold mt-4">English cucumber</h3>
+          <p class="text-espresso-500 text-sm mt-1">Longview Greenhouse · New Jersey</p>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Grown in glass, cut to 3mm on a Japanese mandoline. Held on ice until assembly.
+          </p>
+        </div>
+        <div class="nutri-card p-8 reveal">
+          <span class="ing-num text-5xl font-semibold" style="color:#8a5a2b">05</span>
+          <h3 class="display text-2xl font-semibold mt-4">Two-year shoyu</h3>
+          <p class="text-espresso-500 text-sm mt-1">Yamada Brewery · Wakayama Prefecture</p>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Fermented in cedar barrels for 24 months. Deep, malty, gentle on salt. We pour twelve
+            millilitres.
+          </p>
+        </div>
+        <div class="nutri-card p-8 reveal">
+          <span class="ing-num text-5xl font-semibold" style="color:#c6a35a">06</span>
+          <h3 class="display text-2xl font-semibold mt-4">Sesame · double</h3>
+          <p class="text-espresso-500 text-sm mt-1">Toasted in-house every morning</p>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Half black, half golden. Dry-toasted in a cast-iron pan until they just start to jump.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Nutrition strip
+       ============================================================ -->
+  <section id="nutrition" class="relative z-10 py-32 bg-cream-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="max-w-2xl mb-16 reveal">
+        <p class="tag">The maths</p>
+        <h2 class="display mt-6 text-5xl md:text-6xl font-semibold">
+          Every number,<br />on the label.
+        </h2>
+        <p class="mt-6 text-lg text-espresso-700">
+          One bowl. No filler carbs. No hidden oils. If it's in the bowl, it's on this page.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="nutri-card p-6 reveal">
+          <div class="display text-6xl font-semibold">410</div>
+          <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">kcal</div>
+          <p class="text-espresso-700 text-sm mt-3">
+            A real lunch, not a snack. Dense enough to skip the 3pm biscuit.
+          </p>
+        </div>
+        <div class="nutri-card p-6 reveal">
+          <div class="display text-6xl font-semibold">
+            12<span class="text-3xl text-espresso-500">g</span>
+          </div>
+          <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">Protein</div>
+          <p class="text-espresso-700 text-sm mt-3">
+            All from the shrimp. Nothing added, nothing whey-derived.
+          </p>
+        </div>
+        <div class="nutri-card p-6 reveal">
+          <div class="display text-6xl font-semibold">
+            7<span class="text-3xl text-espresso-500">g</span>
+          </div>
+          <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">Fibre</div>
+          <p class="text-espresso-700 text-sm mt-3">
+            From the lettuce and cucumber. Zero pea protein isolates.
+          </p>
+        </div>
+        <div class="nutri-card p-6 reveal">
+          <div class="display text-6xl font-semibold">
+            0.9<span class="text-3xl text-espresso-500">g</span>
+          </div>
+          <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">Sat. fat</div>
+          <p class="text-espresso-700 text-sm mt-3">
+            Because there's no oil in the dressing. Shoyu carries the flavour.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FAQ
+       ============================================================ -->
+  <section id="faq" class="relative z-10 py-32 bg-cream-100">
+    <div class="max-w-4xl mx-auto px-6 lg:px-10">
+      <div class="mb-16 reveal">
+        <p class="tag">Questions</p>
+        <h2 class="display mt-6 text-5xl md:text-6xl font-semibold">Straight answers.</h2>
+      </div>
+      <div class="divide-y divide-espresso-900/10 border-y border-espresso-900/10">
+        <details class="group py-6 reveal">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="text-lg font-medium">What if I don't eat shrimp?</span>
+            <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+          </summary>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            The bowl comes with wild shrimp. If you want it without, or with tofu instead, tick
+            the box at checkout. We don't do a "vegetarian upcharge."
+          </p>
+        </details>
+        <details class="group py-6 reveal">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="text-lg font-medium">Can I skip a day?</span>
+            <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+          </summary>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Any time before 11pm the night before. From the app, one tap. No emailing "please
+            pause."
+          </p>
+        </details>
+        <details class="group py-6 reveal">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="text-lg font-medium">Where do you deliver?</span>
+            <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+          </summary>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Manhattan south of 96th, all of Brooklyn Heights, DUMBO and Cobble Hill. If we're not
+            in your neighbourhood yet, drop your postcode and we'll tell you when we are.
+          </p>
+        </details>
+        <details class="group py-6 reveal">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <span class="text-lg font-medium">How is it packaged?</span>
+            <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+          </summary>
+          <p class="mt-4 text-espresso-700 leading-relaxed">
+            Compostable bowl, dressing on the side, sesame in a tiny paper sachet so it stays
+            crunchy. All bowls collected at your next drop.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Order CTA
+       ============================================================ -->
+  <section id="order" class="relative z-10 py-40 bg-espresso-900 text-cream-50 overflow-hidden">
+    <div class="max-w-4xl mx-auto px-6 lg:px-10 text-center relative">
+      <h2 class="display text-6xl md:text-8xl font-semibold reveal">
+        One bowl.<br />
+        <em class="not-italic text-tomato">Today.</em>
+      </h2>
+      <p class="mt-8 text-lg text-cream-200 max-w-xl mx-auto reveal">
+        Order before 10am, we'll drop it before 12:30. Skip any day. Cancel any time.
+      </p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4 reveal">
+        <a href="#" class="btn bg-tomato text-cream-50 hover:brightness-110">Order today · $14</a>
+        <a
+          href="#"
+          class="btn border border-cream-200/30 text-cream-50 hover:bg-white/5"
+        >
+          Weekly plan · $59
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="relative z-10 border-t border-espresso-900/10 py-12 bg-cream-50">
+    <div
+      class="max-w-7xl mx-auto px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-espresso-500"
+    >
+      <div class="display text-xl font-semibold text-espresso-900">Umami</div>
+      <div class="flex gap-6">
+        <a href="#" class="hover:text-espresso-900 transition-colors">Kitchen</a>
+        <a href="#" class="hover:text-espresso-900 transition-colors">Sourcing</a>
+        <a href="#" class="hover:text-espresso-900 transition-colors">Careers</a>
+        <a href="#" class="hover:text-espresso-900 transition-colors">Contact</a>
+      </div>
+    </div>
+  </footer>
+</BaseLayout>

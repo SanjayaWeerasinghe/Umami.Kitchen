@@ -1,0 +1,143 @@
+---
+/**
+ * BowlStage — the fixed, full-viewport video background.
+ *
+ * On desktop, the video is scrubbed by scroll (see StoryOverlay's script).
+ * On mobile or slow connections, we swap in a static poster image so the
+ * bowl still reads visually without asking the phone to seek an mp4.
+ *
+ * Client script decides which of the two to activate on the client based
+ * on viewport width and Network Information API hints. It also warms the
+ * video decoder with a single play/pause cycle once loadeddata fires.
+ */
+---
+
+<div id="bowl-stage" aria-hidden="true">
+  <video
+    id="bowl-video"
+    src="/bowl.mp4"
+    preload="auto"
+    muted
+    playsinline
+    disablepictureinpicture
+    disableremoteplayback
+    poster="/bowl-poster.jpg"
+  ></video>
+  <img id="bowl-poster" src="/bowl-poster.jpg" alt="" />
+  <div id="bowl-scrim"></div>
+  <div id="bowl-loading">warming the kitchen…</div>
+</div>
+
+<script>
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  interface BowlAPI {
+    ready: Promise<number>;
+    setProgress: (p: number) => void;
+    isFallback: () => boolean;
+  }
+
+  declare global {
+    interface Window {
+      __bowlAPI?: BowlAPI;
+    }
+  }
+
+  const stage = document.getElementById('bowl-stage') as HTMLDivElement | null;
+  const video = document.getElementById('bowl-video') as HTMLVideoElement | null;
+  const loading = document.getElementById('bowl-loading') as HTMLDivElement | null;
+
+  if (stage && video && loading) {
+    // -----------------------------------------------------------------
+    // Decide whether to attempt scrub-video or fall back to the poster.
+    //
+    // Reasons to fall back:
+    //   - Small viewport (phone / narrow tablet)
+    //   - User has reduced-data preference
+    //   - Slow network reported by Network Information API
+    //   - User prefers reduced motion (scrub animation is unnecessary)
+    // -----------------------------------------------------------------
+    const smallViewport = window.matchMedia('(max-width: 768px)').matches;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reducedData = window.matchMedia('(prefers-reduced-data: reduce)').matches;
+
+    const nav = navigator as Navigator & {
+      connection?: {
+        effectiveType?: string;
+        saveData?: boolean;
+      };
+    };
+    const conn = nav.connection;
+    const slowNet =
+      !!conn && (conn.saveData === true || ['slow-2g', '2g'].includes(conn.effectiveType ?? ''));
+
+    const useFallback = smallViewport || reducedMotion || reducedData || slowNet;
+
+    if (useFallback) {
+      stage.dataset.fallback = 'true';
+      loading.dataset.hidden = 'true';
+      // Publish a no-op API so StoryOverlay can still run its beat picker.
+      window.__bowlAPI = {
+        ready: Promise.resolve(0),
+        setProgress: () => {},
+        isFallback: () => true,
+      };
+    } else {
+      // ---------------------------------------------------------------
+      // Desktop path — wire the video for scroll-scrubbing.
+      // ---------------------------------------------------------------
+      let resolveReady: (d: number) => void = () => {};
+      const ready = new Promise<number>((res) => {
+        resolveReady = res;
+      });
+      let isReady = false;
+
+      function markReady() {
+        if (isReady) return;
+        isReady = true;
+        loading!.dataset.hidden = 'true';
+        // Kickstart decode: some browsers (Chromium on Windows) show a
+        // black frame until the video has actually played once.
+        // A single play()/pause() cycle warms the pipeline so subsequent
+        // currentTime seeks render instantly.
+        const p = video!.play();
+        if (p && typeof (p as any).then === 'function') {
+          (p as Promise<void>).then(() => video!.pause()).catch(() => {
+            /* autoplay may reject on some browsers — ignore, subsequent
+               currentTime seeks still work because muted */
+          });
+        }
+        resolveReady(video!.duration || 0);
+      }
+
+      if (video.readyState >= 2 && video.duration) {
+        markReady();
+      } else {
+        video.addEventListener('loadeddata', markReady, { once: true });
+        video.addEventListener('canplay', markReady, { once: true });
+        video.addEventListener('canplaythrough', markReady, { once: true });
+      }
+      video.addEventListener('error', () => {
+        // Video failed to load — swap in the poster and let StoryOverlay
+        // proceed as if we were in fallback mode from the start.
+        stage!.dataset.fallback = 'true';
+        loading!.dataset.hidden = 'true';
+        resolveReady(0);
+      });
+      // Safety timeout — never leave the layout hanging
+      setTimeout(() => {
+        if (!isReady) markReady();
+      }, 6000);
+
+      window.__bowlAPI = {
+        ready,
+        setProgress(p: number) {
+          if (!isReady) return;
+          const d = video!.duration;
+          if (!d || isNaN(d)) return;
+          video!.currentTime = Math.max(0, Math.min(d - 0.05, p * d));
+        },
+        isFallback: () => false,
+      };
+    }
+  }
+</script>

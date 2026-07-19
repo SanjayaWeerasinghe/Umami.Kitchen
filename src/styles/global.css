@@ -1,0 +1,202 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Umami.Kitchen — global styles
+   Tailwind directives above; component-scoped styles below.
+   Fonts are loaded via <link> tags in BaseLayout.astro.
+   ============================================================ */
+
+html, body {
+  background: #faf5ee;
+  color: #1c1815;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+body { overflow-x: hidden; }
+
+::selection {
+  background: #d94a3d;
+  color: #faf5ee;
+}
+
+/* Fixed video "stage" — full viewport, sits behind everything */
+#bowl-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: #1c1815;
+}
+#bowl-video,
+#bowl-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #1c1815;
+}
+#bowl-poster { display: none; }
+/* Mobile / fallback state — hide the video, show the poster instead */
+#bowl-stage[data-fallback='true'] #bowl-video { display: none; }
+#bowl-stage[data-fallback='true'] #bowl-poster { display: block; }
+
+/* Cinematic scrim — darkens edges so overlaid text stays legible */
+#bowl-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(28, 24, 21, 0.72) 0%,
+      rgba(28, 24, 21, 0.08) 30%,
+      rgba(28, 24, 21, 0.08) 65%,
+      rgba(28, 24, 21, 0.72) 100%),
+    radial-gradient(ellipse 90% 60% at 50% 50%,
+      transparent 40%,
+      rgba(28, 24, 21, 0.35) 100%);
+}
+
+/* Loading placeholder */
+#bowl-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(253, 250, 243, 0.8);
+  font-family: 'Fraunces', serif;
+  font-size: 1.25rem;
+  font-style: italic;
+  background: #1c1815;
+  transition: opacity 500ms ease;
+}
+#bowl-loading[data-hidden='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Serif display headline */
+.display {
+  font-family: 'Fraunces', serif;
+  font-optical-sizing: auto;
+  font-variation-settings: 'opsz' 144;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  border-radius: 999px;
+  transition:
+    transform 200ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 200ms,
+    box-shadow 300ms;
+  will-change: transform;
+}
+.btn-primary {
+  background: #1c1815;
+  color: #faf5ee;
+  box-shadow: 0 12px 30px -12px rgba(28, 24, 21, 0.5);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  background: #2d2620;
+}
+
+/* Nav bar transitions between light-on-video and dark-on-cream */
+.nav-bar {
+  transition:
+    background-color 400ms,
+    backdrop-filter 400ms,
+    border-color 400ms,
+    color 400ms;
+  color: #fdfaf3;
+}
+.nav-bar[data-scrolled='true'] {
+  background: rgba(253, 250, 243, 0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(28, 24, 21, 0.06);
+  color: #1c1815;
+}
+.nav-bar .brand-slash { color: rgba(253, 250, 243, 0.55); }
+.nav-bar[data-scrolled='true'] .brand-slash { color: #8a7d6a; }
+
+/* Tag */
+.tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4a3f34;
+  background: rgba(28, 24, 21, 0.05);
+  border: 1px solid rgba(28, 24, 21, 0.1);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+}
+
+/* Reveal — set by GSAP when in view */
+.reveal { opacity: 0; transform: translateY(24px); }
+
+/* Story beats — big centered typography that fades in/out over the video */
+.story-beat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 500ms ease,
+    transform 500ms cubic-bezier(0.2, 0, 0, 1);
+  pointer-events: none;
+}
+.story-beat[data-active='true'] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.story-beat p {
+  font-family: 'Fraunces', serif;
+  font-optical-sizing: auto;
+  font-variation-settings: 'opsz' 144;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  text-align: center;
+  color: #fdfaf3;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+  max-width: 18ch;
+  margin: 0 auto;
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 600;
+}
+
+/* Nutrition / ingredient card */
+.nutri-card {
+  background: #fdfaf3;
+  border: 1px solid rgba(28, 24, 21, 0.08);
+  border-radius: 1.25rem;
+}
+.ing-num {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+}
+
+/* Accessibility — respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .story-beat { opacity: 1 !important; transform: none !important; }
+}

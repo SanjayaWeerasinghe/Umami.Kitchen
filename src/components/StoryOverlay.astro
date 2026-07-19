@@ -1,0 +1,167 @@
+---
+/**
+ * StoryOverlay — pinned scroll section holding five story beats that fade
+ * in and out over the (scrub-driven) video. Reads window.__bowlAPI from
+ * BowlStage to drive video.currentTime. On mobile / fallback, the beats
+ * still fade in/out as you scroll but the video isn't scrubbed.
+ */
+---
+
+<section id="story" class="relative">
+  <div id="recipe-track" class="relative">
+    <div class="sticky top-0 h-[100vh] w-full">
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="story-beat" data-beat="0">
+          <p>
+            We know how hard it is to <em class="not-italic text-tomato">count every calorie.</em>
+          </p>
+        </div>
+        <div class="story-beat" data-beat="1">
+          <p>
+            Being healthy has become <em class="not-italic text-tomato">a luxury.</em>
+          </p>
+        </div>
+        <div class="story-beat" data-beat="2">
+          <p>
+            In a busy life,<br />who has <em class="not-italic text-tomato">time</em> for a real meal?
+          </p>
+        </div>
+        <div class="story-beat" data-beat="3">
+          <p>
+            So we do the <em class="not-italic text-tomato">hard work</em> for you.
+          </p>
+        </div>
+        <div class="story-beat" data-beat="4">
+          <div class="text-center">
+            <p>
+              Your premium bowl.<br />
+              <em class="not-italic text-tomato">Ready today.</em>
+            </p>
+            <a
+              href="#order"
+              class="btn bg-tomato text-cream-50 hover:brightness-110 mt-10 text-base"
+            >
+              Order from Umami · $14
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              >
+                <path d="M5 12h14M13 5l7 7-7 7"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Hero entrance
+  if (!REDUCED_MOTION) {
+    gsap.fromTo(
+      '[data-hero-el]',
+      { opacity: 0, y: 24 },
+      { opacity: 1, y: 0, duration: 1, ease: 'power3.out', stagger: 0.08, delay: 0.1 },
+    );
+  } else {
+    gsap.set('[data-hero-el]', { opacity: 1, y: 0 });
+  }
+
+  // Batch reveal for below-fold sections
+  ScrollTrigger.batch('.reveal:not([data-hero-el])', {
+    onEnter: (els) =>
+      gsap.to(els, {
+        opacity: 1,
+        y: 0,
+        duration: 0.9,
+        ease: 'power2.out',
+        stagger: 0.08,
+        overwrite: 'auto',
+      }),
+    onLeaveBack: (els) =>
+      gsap.to(els, { opacity: 0, y: 24, duration: 0.4, ease: 'power2.in', overwrite: 'auto' }),
+    start: 'top 85%',
+  });
+
+  // ---------------------------------------------------------------------
+  // Pinned story — track height scales with the video duration so 1s of
+  // video ≈ ~0.6 viewports of scroll. On mobile (bowl fallback mode),
+  // BowlStage resolves ready with duration 0; we then use a fixed track
+  // height because there's no video timeline to match.
+  // ---------------------------------------------------------------------
+  const track = document.getElementById('recipe-track');
+  const beats = gsap.utils.toArray<HTMLElement>('.story-beat');
+
+  if (track && beats.length) {
+    // Provisional height so ScrollTrigger has something to measure right away.
+    track.style.height = '400vh';
+    beats[0].dataset.active = 'true';
+
+    const api = window.__bowlAPI;
+    if (api) {
+      api.ready.then((duration) => {
+        const isFallback = api.isFallback();
+        if (isFallback || !duration) {
+          // Fixed reading pace on mobile — 5 beats × 80vh = 400vh
+          track.style.height = '400vh';
+        } else {
+          const vh = Math.round(Math.max(3, Math.min(24, duration)) * 60);
+          track.style.height = vh + 'vh';
+        }
+        ScrollTrigger.refresh();
+      });
+    }
+
+    ScrollTrigger.create({
+      trigger: track,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      onUpdate(self) {
+        // Drive video currentTime (no-op on mobile fallback)
+        window.__bowlAPI?.setProgress(self.progress);
+
+        const p = self.progress;
+        const thresholds = [0.0, 0.18, 0.36, 0.54, 0.75];
+        let stage = 0;
+        for (let i = thresholds.length - 1; i >= 0; i--) {
+          if (p >= thresholds[i]) {
+            stage = i;
+            break;
+          }
+        }
+        beats.forEach((b, i) => {
+          b.dataset.active = i === stage ? 'true' : 'false';
+        });
+      },
+    });
+  }
+
+  // Nav scrolled state
+  const nav = document.querySelector<HTMLElement>('.nav-bar');
+  if (nav) {
+    ScrollTrigger.create({
+      start: 60,
+      end: 99999,
+      onEnter: () => nav.setAttribute('data-scrolled', 'true'),
+      onLeaveBack: () => nav.setAttribute('data-scrolled', 'false'),
+    });
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => ScrollTrigger.refresh());
+  }
+</script>

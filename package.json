@@ -1,0 +1,24 @@
+{
+  "name": "umami-kitchen",
+  "type": "module",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Umami.Kitchen — scroll-scrubbed video landing page for a fictional healthy-bowl subscription",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "poster": "node scripts/generate-poster.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/tailwind": "^5.1.5",
+    "astro": "^5.1.0",
+    "gsap": "^3.12.5",
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "typescript": "^5.7.0"
+  }
+}
