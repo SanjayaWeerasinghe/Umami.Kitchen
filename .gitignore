@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local dev
+server.log
+.env
+.env.local
+
+# Playwright / test artefacts
+.playwright-mcp/
+test-results/
+playwright-report/
+*.png
+!bowl-poster.png

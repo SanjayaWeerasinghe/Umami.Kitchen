@@ -1,0 +1,620 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Umami — Six ingredients. Twelve grams of protein. Daily.</title>
+  <meta name="description" content="Umami hand-builds a daily protein bowl and drops it at your door before lunch. Six ingredients. Real food. No secrets." />
+  <meta property="og:title" content="Umami · The daily bowl" />
+  <meta property="og:description" content="Six ingredients, twelve grams of protein, one bowl. Delivered fresh, every weekday." />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: {
+              50: '#fdfaf3',
+              100: '#faf5ee',
+              200: '#f2ead9',
+              300: '#e6d8bd',
+            },
+            espresso: {
+              900: '#1c1815',
+              800: '#2d2620',
+              700: '#4a3f34',
+              500: '#8a7d6a',
+              400: '#b0a591',
+            },
+            tomato: '#d94a3d',
+            leaf: '#86ab4b',
+            leafDark: '#4d7a35',
+            shrimp: '#f4a893',
+            cucumber: '#9dc785',
+            soy: '#2d1b0f',
+            sesame: '#e8d091',
+          },
+          fontFamily: {
+            display: ['Fraunces', 'ui-serif', 'Georgia'],
+            sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html, body { background: #faf5ee; color: #1c1815; font-family: 'Inter', system-ui, sans-serif; }
+    body { overflow-x: hidden; }
+    ::selection { background: #d94a3d; color: #faf5ee; }
+
+    /* Video stage — full viewport, fixed, sits behind everything */
+    #bowl-stage {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background: #1c1815;
+    }
+    #bowl-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;   /* fill the viewport, crop as needed */
+      background: #1c1815;
+    }
+    /* Cinematic scrim — darkens top & bottom for text legibility, lets the food breathe in the middle */
+    #bowl-scrim {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(28, 24, 21, 0.72) 0%, rgba(28, 24, 21, 0.08) 30%, rgba(28, 24, 21, 0.08) 65%, rgba(28, 24, 21, 0.72) 100%),
+        radial-gradient(ellipse 90% 60% at 50% 50%, transparent 40%, rgba(28, 24, 21, 0.35) 100%);
+    }
+    /* Loading state */
+    #bowl-loading {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(253, 250, 243, 0.8);
+      font-family: 'Fraunces', serif;
+      font-size: 1.25rem;
+      font-style: italic;
+      background: #1c1815;
+      transition: opacity 500ms ease;
+    }
+    #bowl-loading[data-hidden='true'] { opacity: 0; pointer-events: none; }
+
+    /* Story beats — big centered typography that fades in/out over the video */
+    .story-beat {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 2rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 500ms ease, transform 500ms cubic-bezier(0.2, 0, 0, 1);
+      pointer-events: none;
+    }
+    .story-beat[data-active='true'] {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .story-beat p {
+      font-family: 'Fraunces', serif;
+      font-optical-sizing: auto;
+      font-variation-settings: 'opsz' 144;
+      letter-spacing: -0.02em;
+      line-height: 1.02;
+      text-align: center;
+      color: #fdfaf3;
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+      max-width: 18ch;
+      margin: 0 auto;
+      /* Fluid clamp so the biggest beats never overflow the viewport */
+      font-size: clamp(2.5rem, 6vw, 5.5rem);
+      font-weight: 600;
+    }
+
+    .grain {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        radial-gradient(rgba(28, 24, 21, 0.06) 1px, transparent 1px);
+      background-size: 3px 3px;
+      opacity: 0.5;
+    }
+
+    /* Serif display headline styling */
+    .display {
+      font-family: 'Fraunces', serif;
+      font-optical-sizing: auto;
+      font-variation-settings: 'opsz' 144;
+      letter-spacing: -0.03em;
+      line-height: 0.92;
+    }
+
+    /* Button */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.85rem 1.5rem;
+      font-weight: 500; font-size: 0.9375rem;
+      border-radius: 999px;
+      transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), background-color 200ms, box-shadow 300ms;
+      will-change: transform;
+    }
+    .btn-primary {
+      background: #1c1815;
+      color: #faf5ee;
+      box-shadow: 0 12px 30px -12px rgba(28, 24, 21, 0.5);
+    }
+    .btn-primary:hover { transform: translateY(-1px); background: #2d2620; }
+    .btn-ghost {
+      background: transparent;
+      color: #1c1815;
+      border: 1px solid rgba(28, 24, 21, 0.2);
+    }
+    .btn-ghost:hover { background: rgba(28, 24, 21, 0.04); }
+
+    /* Nav */
+    .nav-bar {
+      transition: background-color 400ms, backdrop-filter 400ms, border-color 400ms, color 400ms;
+      /* Unscrolled: cream text over the dark video */
+      color: #fdfaf3;
+    }
+    .nav-bar a, .nav-bar span { transition: color 400ms; }
+    .nav-bar[data-scrolled='true'] {
+      background: rgba(253, 250, 243, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(28, 24, 21, 0.06);
+      color: #1c1815;
+    }
+    .nav-bar[data-scrolled='true'] .brand-slash { color: #8a7d6a; }
+    .nav-bar .brand-slash { color: rgba(253, 250, 243, 0.55); }
+
+    /* Tag */
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #4a3f34;
+      background: rgba(28, 24, 21, 0.05);
+      border: 1px solid rgba(28, 24, 21, 0.1);
+      border-radius: 999px;
+      padding: 0.35rem 0.8rem;
+    }
+
+    /* Reveal */
+    .reveal { opacity: 0; transform: translateY(24px); }
+
+    /* Sticky caption inside the pinned section */
+    .step-caption { opacity: 0; transition: opacity 400ms ease; }
+    .step-caption[data-active='true'] { opacity: 1; }
+
+    /* Ingredient number card */
+    .ing-num { font-family: 'Fraunces', serif; font-weight: 400; }
+
+    /* Nutrition card */
+    .nutri-card {
+      background: #fdfaf3;
+      border: 1px solid rgba(28, 24, 21, 0.08);
+      border-radius: 1.25rem;
+    }
+
+    /* Divider line */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(28, 24, 21, 0.15), transparent);
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .step-caption { opacity: 1 !important; }
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+<!-- Video stage — full viewport, fixed -->
+<div id="bowl-stage" aria-hidden="true">
+  <video id="bowl-video" src="./bowl.mp4" preload="auto" muted playsinline disablepictureinpicture disableremoteplayback></video>
+  <div id="bowl-scrim"></div>
+  <div id="bowl-loading">warming the kitchen…</div>
+</div>
+
+<!-- Nav -->
+<header class="nav-bar fixed inset-x-0 top-0 z-50">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-baseline gap-1">
+      <span class="display text-2xl font-semibold">Umami</span>
+      <span class="brand-slash text-xs font-mono">/ うまみ</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm">
+      <a href="#story" class="hover:opacity-70 transition-opacity">The bowl</a>
+      <a href="#ingredients" class="hover:opacity-70 transition-opacity">Ingredients</a>
+      <a href="#nutrition" class="hover:opacity-70 transition-opacity">Nutrition</a>
+      <a href="#faq" class="hover:opacity-70 transition-opacity">FAQ</a>
+    </nav>
+    <a href="#order" class="btn btn-primary text-sm">Order today's bowl</a>
+  </div>
+</header>
+
+<!-- Hero — overlays the video's opening frame -->
+<section id="hero" class="relative min-h-[100vh] flex items-center text-cream-50">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 pt-24 pb-16 w-full relative z-10">
+    <div class="max-w-3xl">
+      <p class="reveal inline-block text-xs uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border border-cream-200/25 bg-cream-50/5 backdrop-blur-sm text-cream-200" data-hero-el>Freshly made · delivered daily</p>
+      <h1 class="display mt-8 text-6xl md:text-7xl lg:text-[9rem] font-semibold reveal drop-shadow-[0_4px_30px_rgba(0,0,0,0.5)]" data-hero-el>
+        Healthy food,<br>
+        <em class="not-italic text-tomato">without the effort.</em>
+      </h1>
+      <p class="mt-8 text-xl md:text-2xl text-cream-100 max-w-xl leading-relaxed reveal drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]" data-hero-el>
+        Umami builds a premium bowl every morning — real food, real macros, ready before your lunch break.
+      </p>
+      <div class="mt-10 flex flex-wrap gap-4 reveal" data-hero-el>
+        <a href="#order" class="btn bg-tomato text-cream-50 hover:brightness-110">
+          Get today's bowl · $14
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#story" class="btn border border-cream-50/30 text-cream-50 backdrop-blur-sm hover:bg-cream-50/10">Watch it come together</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-cream-200/70 text-xs font-mono flex flex-col items-center gap-2 z-10 reveal" data-hero-el>
+    <span>SCROLL</span>
+    <span class="h-6 w-px bg-gradient-to-b from-cream-50/60 to-transparent"></span>
+  </div>
+</section>
+
+<!-- Pinned story — five beats fade in/out over the video as it scrubs -->
+<section id="story" class="relative">
+  <div id="recipe-track" class="relative">
+    <div class="sticky top-0 h-[100vh] w-full">
+      <!-- Story beats live at the center of the viewport, over the video -->
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="story-beat" data-beat="0">
+          <p>
+            We know how hard it is to <em class="not-italic text-tomato">count every calorie.</em>
+          </p>
+        </div>
+        <div class="story-beat" data-beat="1">
+          <p>
+            Being healthy has become <em class="not-italic text-tomato">a luxury.</em>
+          </p>
+        </div>
+        <div class="story-beat" data-beat="2">
+          <p>
+            In a busy life,<br>who has <em class="not-italic text-tomato">time</em> for a real meal?
+          </p>
+        </div>
+        <div class="story-beat" data-beat="3">
+          <p>
+            So we do the <em class="not-italic text-tomato">hard work</em> for you.
+          </p>
+        </div>
+        <div class="story-beat" data-beat="4">
+          <div class="text-center">
+            <p>
+              Your premium bowl.<br>
+              <em class="not-italic text-tomato">Ready today.</em>
+            </p>
+            <a href="#order" class="btn bg-tomato text-cream-50 hover:brightness-110 mt-10 text-base">
+              Order from Umami · $14
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ingredients grid -->
+<section id="ingredients" class="relative z-10 py-32 bg-cream-100">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="max-w-2xl mb-16 reveal">
+      <p class="tag">The lineup</p>
+      <h2 class="display mt-6 text-5xl md:text-6xl font-semibold">Six things.<br>Sourced by name.</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="nutri-card p-8 reveal">
+        <span class="ing-num text-5xl font-semibold text-espresso-400">01</span>
+        <h3 class="display text-2xl font-semibold mt-4">Baby gem lettuce</h3>
+        <p class="text-espresso-500 text-sm mt-1">Verdant Farms · Vermont</p>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Hydroponic. No pesticides. Torn — never chopped — so the leaves keep their structure through delivery.</p>
+      </div>
+      <div class="nutri-card p-8 reveal">
+        <span class="ing-num text-5xl font-semibold text-tomato">02</span>
+        <h3 class="display text-2xl font-semibold mt-4">Heirloom tomato</h3>
+        <p class="text-espresso-500 text-sm mt-1">Redfield Growers · Hudson Valley</p>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Six varieties, whichever is peak that week. Quartered, salted two minutes, drained.</p>
+      </div>
+      <div class="nutri-card p-8 reveal">
+        <span class="ing-num text-5xl font-semibold" style="color:#e07357">03</span>
+        <h3 class="display text-2xl font-semibold mt-4">Wild shrimp</h3>
+        <p class="text-espresso-500 text-sm mt-1">Gulf Wild · Certified sustainable</p>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Sous-vide at 63°C for exactly four minutes. Never frozen after cooking. Twelve grams protein per bowl.</p>
+      </div>
+      <div class="nutri-card p-8 reveal">
+        <span class="ing-num text-5xl font-semibold text-cucumber">04</span>
+        <h3 class="display text-2xl font-semibold mt-4">English cucumber</h3>
+        <p class="text-espresso-500 text-sm mt-1">Longview Greenhouse · New Jersey</p>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Grown in glass, cut to 3mm on a Japanese mandoline. Held on ice until assembly.</p>
+      </div>
+      <div class="nutri-card p-8 reveal">
+        <span class="ing-num text-5xl font-semibold" style="color:#8a5a2b">05</span>
+        <h3 class="display text-2xl font-semibold mt-4">Two-year shoyu</h3>
+        <p class="text-espresso-500 text-sm mt-1">Yamada Brewery · Wakayama Prefecture</p>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Fermented in cedar barrels for 24 months. Deep, malty, gentle on salt. We pour twelve millilitres.</p>
+      </div>
+      <div class="nutri-card p-8 reveal">
+        <span class="ing-num text-5xl font-semibold" style="color:#c6a35a">06</span>
+        <h3 class="display text-2xl font-semibold mt-4">Sesame · double</h3>
+        <p class="text-espresso-500 text-sm mt-1">Toasted in-house every morning</p>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Half black, half golden. Dry-toasted in a cast-iron pan until they just start to jump.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Nutrition strip -->
+<section id="nutrition" class="relative z-10 py-32 bg-cream-50">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="max-w-2xl mb-16 reveal">
+      <p class="tag">The maths</p>
+      <h2 class="display mt-6 text-5xl md:text-6xl font-semibold">Every number,<br>on the label.</h2>
+      <p class="mt-6 text-lg text-espresso-700">One bowl. No filler carbs. No hidden oils. If it's in the bowl, it's on this page.</p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="nutri-card p-6 reveal">
+        <div class="display text-6xl font-semibold">410</div>
+        <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">kcal</div>
+        <p class="text-espresso-700 text-sm mt-3">A real lunch, not a snack. Dense enough to skip the 3pm biscuit.</p>
+      </div>
+      <div class="nutri-card p-6 reveal">
+        <div class="display text-6xl font-semibold">12<span class="text-3xl text-espresso-500">g</span></div>
+        <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">Protein</div>
+        <p class="text-espresso-700 text-sm mt-3">All from the shrimp. Nothing added, nothing whey-derived.</p>
+      </div>
+      <div class="nutri-card p-6 reveal">
+        <div class="display text-6xl font-semibold">7<span class="text-3xl text-espresso-500">g</span></div>
+        <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">Fibre</div>
+        <p class="text-espresso-700 text-sm mt-3">From the lettuce and cucumber. Zero pea protein isolates.</p>
+      </div>
+      <div class="nutri-card p-6 reveal">
+        <div class="display text-6xl font-semibold">0.9<span class="text-3xl text-espresso-500">g</span></div>
+        <div class="text-xs uppercase tracking-widest text-espresso-500 mt-3">Sat. fat</div>
+        <p class="text-espresso-700 text-sm mt-3">Because there's no oil in the dressing. Shoyu carries the flavour.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="relative z-10 py-32 bg-cream-100">
+  <div class="max-w-4xl mx-auto px-6 lg:px-10">
+    <div class="mb-16 reveal">
+      <p class="tag">Questions</p>
+      <h2 class="display mt-6 text-5xl md:text-6xl font-semibold">Straight answers.</h2>
+    </div>
+    <div class="divide-y divide-espresso-900/10 border-y border-espresso-900/10">
+      <details class="group py-6 reveal">
+        <summary class="flex items-center justify-between cursor-pointer list-none">
+          <span class="text-lg font-medium">What if I don't eat shrimp?</span>
+          <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+        </summary>
+        <p class="mt-4 text-espresso-700 leading-relaxed">The bowl comes with wild shrimp. If you want it without, or with tofu instead, tick the box at checkout. We don't do a "vegetarian upcharge."</p>
+      </details>
+      <details class="group py-6 reveal">
+        <summary class="flex items-center justify-between cursor-pointer list-none">
+          <span class="text-lg font-medium">Can I skip a day?</span>
+          <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+        </summary>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Any time before 11pm the night before. From the app, one tap. No emailing "please pause."</p>
+      </details>
+      <details class="group py-6 reveal">
+        <summary class="flex items-center justify-between cursor-pointer list-none">
+          <span class="text-lg font-medium">Where do you deliver?</span>
+          <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+        </summary>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Manhattan south of 96th, all of Brooklyn Heights, DUMBO and Cobble Hill. If we're not in your neighbourhood yet, drop your postcode and we'll tell you when we are.</p>
+      </details>
+      <details class="group py-6 reveal">
+        <summary class="flex items-center justify-between cursor-pointer list-none">
+          <span class="text-lg font-medium">How is it packaged?</span>
+          <span class="text-tomato group-open:rotate-45 transition-transform text-2xl leading-none">+</span>
+        </summary>
+        <p class="mt-4 text-espresso-700 leading-relaxed">Compostable bowl, dressing on the side, sesame in a tiny paper sachet so it stays crunchy. All bowls collected at your next drop.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="order" class="relative z-10 py-40 bg-espresso-900 text-cream-50 overflow-hidden">
+  <div class="max-w-4xl mx-auto px-6 lg:px-10 text-center relative">
+    <h2 class="display text-6xl md:text-8xl font-semibold reveal">
+      One bowl.<br><em class="not-italic text-tomato">Today.</em>
+    </h2>
+    <p class="mt-8 text-lg text-cream-200 max-w-xl mx-auto reveal">Order before 10am, we'll drop it before 12:30. Skip any day. Cancel any time.</p>
+    <div class="mt-10 flex flex-wrap justify-center gap-4 reveal">
+      <a href="#" class="btn bg-tomato text-cream-50 hover:opacity-90">Order today · $14</a>
+      <a href="#" class="btn border border-cream-200/30 text-cream-50 hover:bg-white/5">Weekly plan · $59</a>
+    </div>
+  </div>
+</section>
+
+<footer class="relative z-10 border-t border-espresso-900/10 py-12 bg-cream-50">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-espresso-500">
+    <div class="display text-xl font-semibold text-espresso-900">Umami</div>
+    <div class="flex gap-6">
+      <a href="#" class="hover:text-espresso-900 transition-colors">Kitchen</a>
+      <a href="#" class="hover:text-espresso-900 transition-colors">Sourcing</a>
+      <a href="#" class="hover:text-espresso-900 transition-colors">Careers</a>
+      <a href="#" class="hover:text-espresso-900 transition-colors">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+  const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ==========================================================
+  // Bowl video — a real video scrubbed by scroll.
+  // Waits for metadata + first frame decode before letting scroll
+  // drive currentTime (iOS silently ignores setting currentTime on
+  // an unready element). Uses rAF-throttled updates so we don't
+  // hammer the decoder every scroll pixel.
+  // ==========================================================
+  const bowlAPI = (function initBowl() {
+    const video = document.getElementById('bowl-video');
+    const loading = document.getElementById('bowl-loading');
+    if (!video) return { setProgress: () => {}, ready: Promise.resolve(0) };
+
+    let resolveReady;
+    const ready = new Promise(res => { resolveReady = res; });
+    let isReady = false;
+
+    function markReady() {
+      if (isReady) return;
+      isReady = true;
+      loading.dataset.hidden = 'true';
+      // Kickstart decode: some browsers (Chromium on Windows) show a black
+      // frame when a video has never played, even when currentTime is set.
+      // A play()/pause() cycle warms up the pipeline so subsequent seeks
+      // render immediately.
+      const p = video.play();
+      if (p && p.then) {
+        p.then(() => { video.pause(); }).catch(() => {});
+      }
+      resolveReady(video.duration || 0);
+    }
+
+    if (video.readyState >= 2 && video.duration) {
+      markReady();
+    } else {
+      video.addEventListener('loadeddata', markReady, { once: true });
+      video.addEventListener('canplay', markReady, { once: true });
+      video.addEventListener('canplaythrough', markReady, { once: true });
+    }
+    video.addEventListener('error', () => {
+      loading.textContent = 'video failed to load';
+      resolveReady(0);
+    });
+    // Safety timeout — never leave the layout hanging
+    setTimeout(() => { if (!isReady) { markReady(); } }, 6000);
+
+    return {
+      ready,
+      setProgress(p) {
+        if (!isReady) return;
+        const d = video.duration;
+        if (!d || isNaN(d)) return;
+        // Direct assign — ScrollTrigger's scrub already smooths; extra
+        // rAF-eased indirection was making the video feel stuck under
+        // continuous wheel input.
+        video.currentTime = Math.max(0, Math.min(d - 0.05, p * d));
+      },
+    };
+  })();
+
+
+  // ==========================================================
+  // GSAP + ScrollTrigger — hero reveal, pinned recipe, batch reveal, nav state
+  // ==========================================================
+  (function initScrollAnim() {
+    if (!window.gsap || !window.ScrollTrigger) return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Hero entrance
+    if (!REDUCED_MOTION) {
+      gsap.fromTo('[data-hero-el]', { opacity: 0, y: 24 }, {
+        opacity: 1, y: 0, duration: 1, ease: 'power3.out', stagger: 0.08, delay: 0.1,
+      });
+    } else {
+      gsap.set('[data-hero-el]', { opacity: 1, y: 0 });
+    }
+
+    // Batch reveal for the rest
+    ScrollTrigger.batch('.reveal:not([data-hero-el])', {
+      onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out', stagger: 0.08, overwrite: 'auto' }),
+      onLeaveBack: (els) => gsap.to(els, { opacity: 0, y: 24, duration: 0.4, ease: 'power2.in', overwrite: 'auto' }),
+      start: 'top 85%',
+    });
+
+    // Pinned story — track height scales with the video duration so
+    // scroll pace roughly matches video pace ("match video duration").
+    const track = document.getElementById('recipe-track');
+    if (track) {
+      const beats = gsap.utils.toArray('.story-beat');
+      beats[0].dataset.active = 'true';
+
+      // Provisional height so ScrollTrigger has something to measure right away.
+      track.style.height = '400vh';
+
+      // Once the video reports duration, size the track and refresh.
+      bowlAPI.ready.then((duration) => {
+        if (duration && duration > 0) {
+          // 1s of video ≈ ~0.6 viewports of scroll (compressed slightly).
+          const vh = Math.round(Math.max(3, Math.min(24, duration)) * 60);
+          track.style.height = vh + 'vh';
+        }
+        ScrollTrigger.refresh();
+      });
+
+      ScrollTrigger.create({
+        trigger: track,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: true,
+        onUpdate(self) {
+          bowlAPI.setProgress(self.progress);
+
+          // 5 story beats evenly spaced across the pinned scroll,
+          // with the final beat holding a bit longer so the CTA has time to land.
+          const p = self.progress;
+          const thresholds = [0.00, 0.18, 0.36, 0.54, 0.75];
+          let stage = 0;
+          for (let i = thresholds.length - 1; i >= 0; i--) {
+            if (p >= thresholds[i]) { stage = i; break; }
+          }
+          beats.forEach((b, i) => {
+            b.dataset.active = (i === stage) ? 'true' : 'false';
+          });
+        },
+      });
+    }
+
+    // Nav scrolled state
+    const nav = document.querySelector('.nav-bar');
+    ScrollTrigger.create({
+      start: 60,
+      end: 99999,
+      onEnter: () => nav.setAttribute('data-scrolled', 'true'),
+      onLeaveBack: () => nav.setAttribute('data-scrolled', 'false'),
+    });
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => ScrollTrigger.refresh());
+    }
+  })();
+</script>
+</body>
+</html>
